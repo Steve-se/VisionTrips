@@ -13,3 +13,5 @@ django-environ==0.11.2
 django-decouple==2.1
 Markdown==3.5.1
 django-case-insensitive-field==1.0.7
+whitenoise==6.6.0
+gunicorn==21.2.0
