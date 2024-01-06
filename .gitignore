@@ -1,0 +1,25 @@
+venv/
+.vscode/
+.env
+*.env
+*.db.sqlite3
+*.db.sqlite
+__pycache__/
+*.pyc
+.idea
+*.idea
+.idea/*
+*.log
+*.sqlite
+*.sqlite3
+.DS_Store
+*.DS_Store
+
+# Project image and file folders
+static/
+staticfiles/
+media/
+logs/
+images/*
+
+.push.py

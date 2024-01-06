@@ -1,0 +1,15 @@
+asgiref==3.7.2
+Django==5.0
+djangorestframework==3.14.0
+pytz==2023.3.post1
+sqlparse==0.4.4
+typing_extensions==4.8.0
+tzdata==2023.3
+Pillow==10.1.0
+Markdown==3.5.1
+psycopg2==2.9.9
+cryptography==41.0.4
+django-environ==0.11.2
+django-decouple==2.1
+Markdown==3.5.1
+django-case-insensitive-field==1.0.7
