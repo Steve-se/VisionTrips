@@ -6,5 +6,6 @@ from .models import Product, ProductInfo, ProductGallery, ProductReviews, Produc
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ['product_description']}
+    list_display = ['product_description', 'category', 'subcategory', 'price', 'num_of_days']
     
 admin.site.register([ProductInfo, ProductGallery, ProductReviews, ProductExclusion, ProductInclusions, Category, SubCategory])

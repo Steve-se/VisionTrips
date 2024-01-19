@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from common.modules.fields import CaseInsensitiveCharField
 
+
 # Create your models here.
 class Category(models.Model):
     name = CaseInsensitiveCharField(max_length=255, unique=True)
@@ -106,4 +107,8 @@ class ProductExclusion(models.Model):
 
     class Meta:
         verbose_name_plural = "Product Exclusion"
+
+
+    def __str__(self):
+        return f"Exclusions for ~ {self.product.product_description}"
 

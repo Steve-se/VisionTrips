@@ -11,9 +11,23 @@ from common.modules.pagination import ProductPagination
 from rest_framework.generics import get_object_or_404
 from rest_framework.decorators import action
 from django.core.exceptions import ValidationError
+from django.db.models.functions import Cast
+from django.db.models import IntegerField,  Case, When, Value
+
+from rest_framework.decorators import api_view  
+from rest_framework.reverse import reverse  
 
 # Create your views here.
 #todo: remember to work on sub categories view
+
+@api_view(["GET"])  # new
+def api_root(request, format=None):
+    return Response(
+        {
+            "products": reverse("all-products", request=request, format=format),
+            "product_information": reverse("product_info", request=request, format=format),
+        }
+    )
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -29,7 +43,7 @@ class ProductListView(GenericAPIView):
 
     def get_queryset(self):
         category = self.request.query_params.get('category', None)
-        days = self.request.query_params.get('days', None)
+        order_by = self.request.query_params.get('days', None)
         price_order = self.request.query_params.get('price_order', None)
         alphabetical_order = self.request.query_params.get('alphabetical_order', None)
     
@@ -38,17 +52,26 @@ class ProductListView(GenericAPIView):
 
         # Applying filter
         if category:
-            queryset = queryset.filter(category__name=category)
-
-        if days:
-            queryset = queryset.filter(num_of_days=days)
+            queryset = queryset.filter(category__name__iexact=category)
 
         # Applying ordering
+        if order_by:
+            queryset = queryset.annotate(num_days_int=Cast('num_of_days', IntegerField())).order_by('-num_days_int')
+
         if price_order:
-            queryset = queryset.order_by('-price') if price_order.lower() == 'high' else queryset.order_by('-price')
+            int_price = Case(
+               When(price__regex=r'^\d+$', then=Cast('price', IntegerField())),
+               default=Value(0),
+               output_field=IntegerField()
+            )
+            queryset = queryset.annotate(int_price=int_price)
+            if price_order.lower() == 'high':
+                queryset = queryset.order_by('-int_price')
+            else:
+                queryset = queryset.order_by('int_price')
 
         if alphabetical_order:
-            queryset = queryset.order_by('product_description') if alphabetical_order.lower() == 'asc' else queryset.order_by('-name')
+            queryset = queryset.order_by('product_description') if alphabetical_order.lower() == 'asc' else queryset.order_by('-product_description')
         
         return queryset
 
@@ -487,7 +510,6 @@ class ProductInclusionDetailView(GenericAPIView):
             }
             return Response(data)
     
-
 class ProductReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ProductReviewsSerializer
 

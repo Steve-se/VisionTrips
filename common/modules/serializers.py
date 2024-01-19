@@ -65,21 +65,21 @@ class ProductInclusionSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    category = serializers.StringRelatedField()
     class Meta:
         model = Product
         exclude = ['date_added']
 
 class ProductDetailSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = Product
-        exclude = ['price', 'num_of_days', 'slug', 'pic' ]
-    product_info = ProductInfoSerializer(many=True, read_only=True)
+    product_info = ProductInfoSerializer(many=True,read_only=True)
     product_gallery = ProductGallerySerializer(many=True, read_only=True)
     product_review = ProductReviewsSerializer(many=True, read_only=True)
     product_exclusion = ProductExclusionSerializer(many=True, read_only=True)
     product_inclusion = ProductInclusionSerializer(many=True, read_only=True)
-
+    
+    class Meta:
+        model = Product
+        exclude = ['price', 'num_of_days', 'slug', 'pic' ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
