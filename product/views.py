@@ -1,5 +1,3 @@
-from django.shortcuts import render
-from django.http import HttpResponse
 from .models import Product, ProductInfo, ProductGallery, ProductReviews, ProductExclusion,\
       ProductInclusions, Category, SubCategory
 from common.modules.serializers import ProductSerializer, ProductDetailSerializer, ProductInfoSerializer, \
@@ -14,27 +12,162 @@ from django.core.exceptions import ValidationError
 from django.db.models.functions import Cast
 from django.db.models import IntegerField,  Case, When, Value
 
-from rest_framework.decorators import api_view  
-from rest_framework.reverse import reverse  
 
-# Create your views here.
-#todo: remember to work on sub categories view
+class CategoryListView(GenericAPIView):
+    serializer_class = CategorySerializer
+    
+    def get_queryset(self):
+        return Category.objects.all()
 
-@api_view(["GET"])  # new
-def api_root(request, format=None):
-    return Response(
-        {
-            "products": reverse("all-products", request=request, format=format),
-            "product_information": reverse("product_info", request=request, format=format),
+    def get(self, request, format=None):
+        categories = self.get_queryset()
+        serializer = self.serializer_class(categories, many=True)
+        data =  {
+            "message" : "Retrieved successfully",
+            "data" : serializer.data,
         }
-    )
-
-class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
+        return Response(data, status=status.HTTP_200_OK)
+    
+    def post(self, request):
+        categories = self.get_queryset()
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            vd = serializer.validated_data
+            cat_name = vd['name']
+            if cat_name in categories:
+                return Response({"message": "This category name already exists"})
+            else:
+                serializer.save()
+                data = {
+                    "message": "Added successfully",
+                    "data": serializer.data,
+                }
+                return Response(data, status=status.HTTP_201_CREATED)
+        return Response({"message": "Invaild data. Check the category name. It may be repeated"})
+    
+class CategoryDetailView(GenericAPIView):
     serializer_class = CategorySerializer
 
-# class SubCategoryListView(GenericAPIView):
-#     serializer_class = 
+    def get_object(self, slug):
+        return get_object_or_404(Category, slug=slug)
+    
+    def get(self, request, slug, format=None):
+        cat = self.get_object(slug)
+        serializer = self.serializer_class(cat)
+        data =  {
+            "message" : "Retrieved successfully\n", 
+            "data" : serializer.data,
+        }     
+        return Response(data, status=status.HTTP_200_OK)  
+
+    def put(self, request, slug, format=None):
+        cat = self.get_object(slug)
+        serializer = self.serializer_class(cat, request.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = {
+                "message" : "Updated successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=200)
+        else:
+            return Response({"message": "invalid data"})
+        
+    def delete(self, request, slug, format=None):
+        cat = self.get_object(slug)
+        if cat:
+            cat.delete()
+            data = {
+                "message": "DELETED !"
+            }
+            return Response(data)
+        else:
+            return Response({"message": "No item exists at this id"})
+
+class SubCategoryListView(GenericAPIView):
+    serializer_class = SubCategorySerializer
+    
+    def get_queryset(self):
+        return SubCategory.objects.all()
+
+    def get(self, request, slug, format=None):
+        cat = get_object_or_404(Category, slug=slug)
+        categories = self.get_queryset().filter(category=cat)
+        if categories:
+            serializer = self.serializer_class(categories, many=True)
+            data =  {
+                "message" : "Retrieved successfully",
+                "data" : serializer.data,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "No subcategory in this category"})
+    
+    def post(self, request, slug):
+        cat = get_object_or_404(Category, slug=slug)
+        sub_categories = self.get_queryset().filter(category=cat)
+        serializer = self.serializer_class(data=request.data)
+
+
+        if serializer.is_valid():
+            vd = serializer.validated_data
+            sub_cat_name = vd['name']
+
+            # Check if a subcategory with the same name already exist
+            if sub_categories.filter(name=sub_cat_name).exists():
+                return Response({"message": "This subcategory name already exists"})
+            else:
+                serializer.save(category=cat)
+                data = {
+                    "data": serializer.data,
+                    "message": "Added successfully"
+                }
+                return Response(data, status=status.HTTP_201_CREATED)
+        return Response({"message": "Invaild data. Check the category name. It may be repeated"})
+    
+class SubCategoryDetailView(GenericAPIView):
+    serializer_class = SubCategorySerializer
+
+    def get_queryset(self, slug):
+        return SubCategory.objects.filter(category__slug=slug)
+    
+    def get(self, request, pk, slug, format=None):
+        subcategory = self.get_queryset(slug).filter(pk=pk).first()
+
+        if subcategory:
+        
+            serializer = self.serializer_class(subcategory)  
+            data =  {
+                "message" : "Retrieved successfully",
+                "data" : serializer.data,
+            }     
+            return Response(data, status=status.HTTP_200_OK)  
+        else:
+            return Response({"message": "No subcategory at the specified id. Check the subcategory id"})
+
+    def put(self, request, pk, slug, format=None):
+        subcategory = self.get_queryset(slug).filter(pk=pk).first()
+        serializer = self.serializer_class(subcategory, request.data)
+        if serializer.is_valid():
+            serializer.save()
+            data = {
+                "message" : "Updated successfully",
+                "data": serializer.data
+            }
+            return Response(data, status=200)
+        else:
+            return Response({"message": "invalid data"})
+        
+    def delete(self, request,slug, pk, format=None):
+        subcatgory = self.get_queryset(slug).filter(pk=pk).first()
+        if subcatgory:
+            subcatgory.delete()
+            data = {
+                "message": "DELETED !"
+            }
+            return Response(data)
+        else:
+            return Response({"message": "No item exists at this id"})
     
 class ProductListView(GenericAPIView):
     serializer_class = ProductSerializer
@@ -109,8 +242,8 @@ class ProductDetailView(GenericAPIView):
         serializer = self.serializer_class(product)
 
         data = {
+            "message": "Retrieved successfully",
             "data": serializer.data,
-            "message": "Retrieved successfully"
         }
         return Response(data)
         
@@ -126,8 +259,8 @@ class ProductInfoListView(GenericAPIView):
         if product_info.exists(): 
             serializer = self.serializer_class(product_info, many=True)
             data = {
+                "message": "Retrieved successfully",
                 "data": serializer.data,
-                "message": "Retrieved successfully"
             }
             return Response(data)
         else:
@@ -426,7 +559,7 @@ class ProductInclusionListView(GenericAPIView):
             }
             return Response(data)
         else:
-            message = 'No exclusion found for the specified product slug.'
+            message = 'No inclusion found for the specified product slug.'
             return Response({"message": message}, status=404)
         
     
@@ -521,7 +654,7 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
     def add_rating_and_comment(self, request, slug):
         review = get_object_or_404(self.get_queryset(), product__slug=slug)
         if 'rating' not in request.data:
-            return Response({'error': "Rating is required."}, status=404)
+            return Response({'error': "Rating is required."}, status=status.HTTP_400_BAD_REQUEST)
         
         rating = int(request.data['rating'])
 
@@ -543,3 +676,5 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+

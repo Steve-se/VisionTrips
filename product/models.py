@@ -6,6 +6,7 @@ from common.modules.fields import CaseInsensitiveCharField
 # Create your models here.
 class Category(models.Model):
     name = CaseInsensitiveCharField(max_length=255, unique=True)
+    slug = models.SlugField()
 
     def __str__(self):
         return self.name
@@ -74,8 +75,8 @@ class ProductReviews(models.Model):
     rating = models.PositiveIntegerField(
             validators=[
             MinValueValidator(1, message="Rating must be at least 1."),
-            MaxValueValidator(5, message="Rating must be at most 5."),
-        ]
+            MaxValueValidator(5, message="Rating must be at most 5.")
+        ], blank=True, null=True
     )
     comment = models.TextField()
     name = models.CharField(max_length=200)
@@ -86,6 +87,7 @@ class ProductReviews(models.Model):
 
     class Meta:
         verbose_name_plural = "Product Reviews"
+        ordering = ['-created_at']
 
     def __str__(self):
         return f"{self.name} | {self.rating} star review on ~ {self.product.product_description}".lower()
