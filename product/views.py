@@ -217,8 +217,8 @@ class ProductListView(GenericAPIView):
             p = all_products
         serializer = ProductSerializer(p, many=True)
         data = {
+            "message": "Retrieved successfully",
             "data": serializer.data,
-            "message": "Retrieved successfully"
         }
         return self.get_paginated_response(data) if page is not None else Response(data)
 
@@ -299,8 +299,8 @@ class ProductInfoDetailView(GenericAPIView):
         if product_info:
             serializer = self.serializer_class(product_info)
             data = {
+                "message": "Retrieved successfully",
                 "data": serializer.data,
-                "message": "Retrieved successfully"
             }
             return Response(data)
         else:
@@ -316,8 +316,8 @@ class ProductInfoDetailView(GenericAPIView):
             if serializer.is_valid():
                 serializer.save()
                 data = {
+                    "message": "Updated successfully ",
                     "data":serializer.data,
-                    "message": "Updated successfully "
                 }
                 return Response(data)
             else:
@@ -641,8 +641,8 @@ class ProductInclusionDetailView(GenericAPIView):
             data = {
                 "message": "No item exists at this id"
             }
-            return Response(data)
-    
+            return Response(data)   
+
 class ProductReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ProductReviewsSerializer
 
@@ -653,28 +653,32 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def add_rating_and_comment(self, request, slug):
         review = get_object_or_404(self.get_queryset(), product__slug=slug)
-        if 'rating' not in request.data:
-            return Response({'error': "Rating is required."}, status=status.HTTP_400_BAD_REQUEST)
         
-        rating = int(request.data['rating'])
+        # Check if a product is associated with the review
+        if review.product is not None:
+            if 'rating' not in request.data:
+                return Response({'error': "Rating is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            rating = int(request.data['rating'])
 
-        if not 1 <= rating <=5:
-            return Response({'error': 'Invalid rating. Must be between 1 and 5.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not 1 <= rating <= 5:
+                return Response({'error': 'Invalid rating. Must be between 1 and 5.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        review.rating = rating
-        review.comment = request.data.get('comment', '')
-        review.name = request.data.get('name', '')
-        review.email = request.data.get('email', '')
-        review.website = request.data.get('website', '')
-        review.save_info = request.data.get('save_info', False)
+            review.rating = rating
+            review.comment = request.data.get('comment', '')
+            review.name = request.data.get('name', '')
+            review.email = request.data.get('email', '')
+            review.website = request.data.get('website', '')
+            review.save_info = request.data.get('save_info', False)
 
-        try:
-            review.full_clean()  # Validate all model fields, including validators
-            review.save()
-            serializer = self.serializer_class(review)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        
-        except ValidationError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                review.full_clean()  # Validate all model fields, including validators
+                review.save()
+                serializer = self.serializer_class(review)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            
+            except ValidationError as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
+        else:
+            return Response({'error': 'Product not found.'}, status=status.HTTP_400_BAD_REQUEST)
